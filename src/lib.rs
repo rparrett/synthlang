@@ -1,8 +1,11 @@
+#![allow(clippy::non_ascii_literal)]
+
 use rand::prelude::*;
 use rand::seq::SliceRandom;
 use rand_pcg::Pcg64;
 use std::fmt;
 
+#[allow(clippy::enum_variant_names)]
 #[derive(Debug, Clone)]
 enum CompoundRule {
     DropLeft,
@@ -59,7 +62,7 @@ impl fmt::Display for Word {
             word.push_str(&formatted);
         }
 
-        write!(f, "{}", SynthLang::remove_repeated_chars(word))
+        write!(f, "{}", SynthLang::remove_repeated_chars(&word))
     }
 }
 
@@ -79,7 +82,9 @@ impl fmt::Display for SyllablePart {
 }
 
 impl SynthLang {
-    pub fn new(seed: u64) -> SynthLang {
+    #[allow(clippy::too_many_lines)]
+    #[must_use]
+    pub fn new(seed: u64) -> Self {
         let consonants = vec![
             "b".to_string(),
             "c".to_string(),
@@ -212,24 +217,25 @@ impl SynthLang {
 
         our_vowels.append(&mut our_dipthongs);
 
-        let weights = [0, 25, 50, 100];
+        let possible_weights = [0, 25, 50, 100];
+        let mut weights = (
+            *possible_weights.choose(&mut rng).unwrap(),
+            *possible_weights.choose(&mut rng).unwrap(),
+            *possible_weights.choose(&mut rng).unwrap(),
+        );
 
-        let mut cv_weight = *weights.choose(&mut rng).unwrap();
-        let mut vc_weight = *weights.choose(&mut rng).unwrap();
-        let mut cvc_weight = *weights.choose(&mut rng).unwrap();
-
-        if (0, 0, 0) == (cv_weight, vc_weight, cvc_weight) {
-            cv_weight = 25;
-            vc_weight = 25;
-            cvc_weight = 25;
+        if (0, 0, 0) == weights {
+            weights.0 = 25;
+            weights.1 = 25;
+            weights.2 = 25;
         }
 
-        SynthLang {
+        Self {
             consonants: our_consonants,
             vowels: our_vowels,
-            cv_weight,
-            vc_weight,
-            cvc_weight,
+            cv_weight: weights.0,
+            vc_weight: weights.1,
+            cvc_weight: weights.2,
             rng,
         }
     }
@@ -353,7 +359,7 @@ impl SynthLang {
         }
     }
 
-    fn remove_repeated_chars(input: String) -> String {
+    fn remove_repeated_chars(input: &str) -> String {
         let mut output = String::new();
         let mut prev = '\0';
         let mut count = 1;
@@ -446,7 +452,7 @@ mod tests {
     fn repeats() {
         let s = "aaa bab cccccc ok".to_string();
         assert_eq!(
-            SynthLang::remove_repeated_chars(s),
+            SynthLang::remove_repeated_chars(&s),
             "aa bab cc ok".to_string()
         );
     }

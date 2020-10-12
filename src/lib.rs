@@ -218,13 +218,10 @@ impl SynthLang {
         let mut vc_weight = *weights.choose(&mut rng).unwrap();
         let mut cvc_weight = *weights.choose(&mut rng).unwrap();
 
-        match (cv_weight, vc_weight, cvc_weight) {
-            (0, 0, 0) => {
-                cv_weight = 25;
-                vc_weight = 25;
-                cvc_weight = 25;
-            }
-            _ => {}
+        if (0, 0, 0) == (cv_weight, vc_weight, cvc_weight) {
+            cv_weight = 25;
+            vc_weight = 25;
+            cvc_weight = 25;
         }
 
         SynthLang {
@@ -389,13 +386,13 @@ mod tests {
         let mut r = SynthLang::new(3);
 
         println!("{:?}", r);
-        println!("");
+        println!();
         println!(
             "The distinguished language of {}",
             r.word().to_string().to_title_case()
         );
 
-        println!("");
+        println!();
         println!("{:10}{:10}", r.word().to_string(), "dress");
         println!("{:10}{:10}", r.word().to_string(), "child");
         println!("{:10}{:10}", r.word().to_string(), "shoes");
@@ -405,7 +402,7 @@ mod tests {
         println!("{:10}{:10}", r.word().to_string(), "soup");
         println!("{:10}{:10}", r.word().to_string(), "soldier");
         println!("{:10}{:10}", r.word().to_string(), "reporter");
-        println!("");
+        println!();
 
         let green = r.word();
         let red = r.word();
@@ -440,7 +437,7 @@ mod tests {
             stream.to_string(),
             "Red River",
         );
-        println!("");
+        println!();
 
         assert_eq!(2 + 2, 4);
     }

@@ -47,7 +47,7 @@ pub struct SynthLang {
     pub vc_weight: i32,
     pub cv_weight: i32,
     pub cvc_weight: i32,
-    rng: Pcg64
+    rng: Pcg64,
 }
 
 impl fmt::Display for Word {
@@ -183,7 +183,7 @@ impl SynthLang {
         ];
 
         let mut rng = Pcg64::seed_from_u64(seed);
-        
+
         let mut dipthongs = vec!["æ".to_string(), "œ".to_string()];
         for v1 in &vowels {
             for v2 in &vowels {
@@ -191,12 +191,10 @@ impl SynthLang {
             }
         }
 
-        let mut our_vowels: Vec<String> = vowels
-            .choose_multiple(&mut rng, 6)
-            .cloned()
-            .collect();
+        let mut our_vowels: Vec<String> = vowels.choose_multiple(&mut rng, 6).cloned().collect();
 
-        let mut our_consonants: Vec<String> = consonants.choose_multiple(&mut rng, 16).cloned().collect();
+        let mut our_consonants: Vec<String> =
+            consonants.choose_multiple(&mut rng, 16).cloned().collect();
 
         for s in spice.choose_multiple(&mut rng, 2) {
             match s.1 {
@@ -208,10 +206,10 @@ impl SynthLang {
                 }
             }
         }
-        
+
         let mut our_dipthongs: Vec<String> =
             dipthongs.choose_multiple(&mut rng, 3).cloned().collect();
-        
+
         our_vowels.append(&mut our_dipthongs);
 
         let weights = [0, 25, 50, 100];
@@ -235,7 +233,7 @@ impl SynthLang {
             cv_weight,
             vc_weight,
             cvc_weight,
-            rng
+            rng,
         }
     }
 
@@ -245,7 +243,10 @@ impl SynthLang {
             (SyllableType::VC, self.vc_weight),
             (SyllableType::CVC, self.cvc_weight),
         ];
-        let syllable_type = &choices.choose_weighted(&mut self.rng, |item| item.1).unwrap().0;
+        let syllable_type = &choices
+            .choose_weighted(&mut self.rng, |item| item.1)
+            .unwrap()
+            .0;
 
         let mut parts = vec![];
 
@@ -293,12 +294,15 @@ impl SynthLang {
         let mut syllables = vec![];
 
         let choices = [(1, 1), (2, 2)];
-        let num_syllables = choices.choose_weighted(&mut self.rng, |item| item.1).unwrap().0;
+        let num_syllables = choices
+            .choose_weighted(&mut self.rng, |item| item.1)
+            .unwrap()
+            .0;
 
         for _ in 0..num_syllables {
             syllables.push(self.syllable());
         }
-        
+
         // 50/50 drop something
         let compound_rule = match self.rng.gen_range(0, 4) {
             0 => CompoundRule::DropLeft,
@@ -308,7 +312,7 @@ impl SynthLang {
 
         Word {
             parts: syllables,
-            compound_rule
+            compound_rule,
         }
     }
 
@@ -338,7 +342,7 @@ impl SynthLang {
                 new.extend(right.parts.iter().cloned());
             }
         }
-        
+
         // 50/50 drop something
         let compound_rule = match self.rng.gen_range(0, 4) {
             0 => CompoundRule::DropLeft,
@@ -348,7 +352,7 @@ impl SynthLang {
 
         Word {
             parts: new,
-            compound_rule
+            compound_rule,
         }
     }
 

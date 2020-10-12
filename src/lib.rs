@@ -1,4 +1,3 @@
-use heck::TitleCase;
 use rand::prelude::*;
 use rand::seq::SliceRandom;
 use rand_pcg::Pcg64;
@@ -379,6 +378,7 @@ impl SynthLang {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use heck::TitleCase;
 
     #[test]
     fn it_works() {

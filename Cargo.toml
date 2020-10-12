@@ -10,4 +10,7 @@ edition = "2018"
 
 rand = { version="0.7", features=["wasm-bindgen"] }
 rand_pcg = "0.2"
+
+[dev-dependencies]
+
 heck = "0.3"

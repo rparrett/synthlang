@@ -111,6 +111,7 @@ impl SynthLang {
             "sh".to_string(),
             "th".to_string(),
             "ch".to_string(),
+            "zh".to_string(),
         ];
 
         let spice = vec![

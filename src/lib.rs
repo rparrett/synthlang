@@ -85,35 +85,37 @@ impl SynthLang {
     #[allow(clippy::too_many_lines)]
     #[must_use]
     pub fn new(seed: u64) -> Self {
-        let consonants = vec![
-            "b".to_string(),
-            "c".to_string(),
-            "d".to_string(),
-            "f".to_string(),
-            "g".to_string(),
-            "h".to_string(),
-            "j".to_string(),
-            "k".to_string(),
-            "l".to_string(),
-            "m".to_string(),
-            "n".to_string(),
-            "p".to_string(),
-            "q".to_string(),
-            "r".to_string(),
-            "s".to_string(),
-            "t".to_string(),
-            "v".to_string(),
-            "w".to_string(),
-            "x".to_string(),
-            "y".to_string(),
-            "z".to_string(),
-            "ng".to_string(),
-            "sh".to_string(),
-            "th".to_string(),
-            "ch".to_string(),
-            "zh".to_string(),
-        ];
+        let mut rng = Pcg64::seed_from_u64(seed);
 
+        let mut vowels = Self::random_vowels(&mut rng);
+        let mut consonants = Self::random_consonants(&mut rng);
+
+        let spice = Self::random_spice(&mut rng);
+
+        for s in spice {
+            match s.1 {
+                SyllablePartType::Vowel => {
+                    vowels.push(s.0.clone());
+                }
+                SyllablePartType::Consonant => {
+                    consonants.push(s.0.clone());
+                }
+            }
+        }
+
+        let weights = Self::random_weights(&mut rng);
+
+        Self {
+            consonants,
+            vowels,
+            cv_weight: weights.0,
+            vc_weight: weights.1,
+            cvc_weight: weights.2,
+            rng,
+        }
+    }
+
+    fn random_spice(mut rng: &mut Pcg64) -> Vec<(String, SyllablePartType)> {
         let spice = vec![
             // TODO very incomplete
             ("ñ".to_string(), SyllablePartType::Consonant),
@@ -182,7 +184,49 @@ impl SynthLang {
             ("ű".to_string(), SyllablePartType::Vowel),
         ];
 
-        let vowels = vec![
+        spice.choose_multiple(&mut rng, 2).cloned().collect()
+    }
+
+    fn random_consonants(mut rng: &mut Pcg64) -> Vec<String> {
+        let possible_consonants = vec![
+            "b".to_string(),
+            "c".to_string(),
+            "d".to_string(),
+            "f".to_string(),
+            "g".to_string(),
+            "h".to_string(),
+            "j".to_string(),
+            "k".to_string(),
+            "l".to_string(),
+            "m".to_string(),
+            "n".to_string(),
+            "p".to_string(),
+            "q".to_string(),
+            "r".to_string(),
+            "s".to_string(),
+            "t".to_string(),
+            "v".to_string(),
+            "w".to_string(),
+            "x".to_string(),
+            "y".to_string(),
+            "z".to_string(),
+            "ng".to_string(),
+            "sh".to_string(),
+            "th".to_string(),
+            "ch".to_string(),
+            "zh".to_string(),
+        ];
+
+        let consonants: Vec<String> = possible_consonants
+            .choose_multiple(&mut rng, 16)
+            .cloned()
+            .collect();
+
+        consonants
+    }
+
+    fn random_vowels(mut rng: &mut Pcg64) -> Vec<String> {
+        let possible_vowels = vec![
             "a".to_string(),
             "e".to_string(),
             "i".to_string(),
@@ -190,46 +234,22 @@ impl SynthLang {
             "u".to_string(),
         ];
 
-        let mut rng = Pcg64::seed_from_u64(seed);
-
+        // TODO maybe these should be considered spice
         let mut dipthongs = vec!["æ".to_string(), "œ".to_string()];
-        for v1 in &vowels {
-            for v2 in &vowels {
+        for v1 in &possible_vowels {
+            for v2 in &possible_vowels {
                 dipthongs.push(format!("{}{}", v1, v2))
             }
         }
 
-        let mut our_vowels: Vec<String> = vowels.choose_multiple(&mut rng, 6).cloned().collect();
+        let mut vowels: Vec<String> = possible_vowels
+            .choose_multiple(&mut rng, 6)
+            .cloned()
+            .collect();
 
-        let mut our_consonants: Vec<String> =
-            consonants.choose_multiple(&mut rng, 16).cloned().collect();
+        vowels.extend(dipthongs.choose_multiple(&mut rng, 3).cloned());
 
-        for s in spice.choose_multiple(&mut rng, 2) {
-            match s.1 {
-                SyllablePartType::Vowel => {
-                    our_vowels.push(s.0.clone());
-                }
-                SyllablePartType::Consonant => {
-                    our_consonants.push(s.0.clone());
-                }
-            }
-        }
-
-        let mut our_dipthongs: Vec<String> =
-            dipthongs.choose_multiple(&mut rng, 3).cloned().collect();
-
-        our_vowels.append(&mut our_dipthongs);
-
-        let weights = Self::random_weights(&mut rng);
-
-        Self {
-            consonants: our_consonants,
-            vowels: our_vowels,
-            cv_weight: weights.0,
-            vc_weight: weights.1,
-            cvc_weight: weights.2,
-            rng,
-        }
+        vowels
     }
 
     fn random_weights(mut rng: &mut Pcg64) -> (i32, i32, i32) {
@@ -478,7 +498,7 @@ mod tests {
 
     #[test]
     fn it_works() {
-        let mut r = SynthLang::new(3);
+        let mut r = SynthLang::new(thread_rng().gen());
 
         println!("{:?}", r);
         println!();

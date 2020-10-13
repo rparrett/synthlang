@@ -135,6 +135,8 @@ impl SynthLang {
             ("ż".to_string(), SyllablePartType::Consonant),
             ("ẅ".to_string(), SyllablePartType::Consonant),
             ("ŵ".to_string(), SyllablePartType::Consonant),
+            ("и".to_string(), SyllablePartType::Consonant),
+            ("й".to_string(), SyllablePartType::Consonant),
             // TODO probably incomplete
             ("à".to_string(), SyllablePartType::Vowel),
             ("á".to_string(), SyllablePartType::Vowel),

@@ -163,7 +163,6 @@ impl SynthLang {
             ("ĩ".to_string(), SyllablePartType::Vowel),
             ("ī".to_string(), SyllablePartType::Vowel),
             ("ĭ".to_string(), SyllablePartType::Vowel),
-            ("ı".to_string(), SyllablePartType::Vowel),
             ("ò".to_string(), SyllablePartType::Vowel),
             ("ó".to_string(), SyllablePartType::Vowel),
             ("ô".to_string(), SyllablePartType::Vowel),

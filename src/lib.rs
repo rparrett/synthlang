@@ -3,7 +3,10 @@
 use rand::prelude::*;
 use rand::seq::SliceRandom;
 use rand_pcg::Pcg64;
+use std::collections::HashMap;
 use std::fmt;
+
+type NextPartWeights = HashMap<String, (Vec<(String, i32)>, Vec<(String, i32)>)>;
 
 #[allow(clippy::enum_variant_names)]
 #[derive(Debug, Clone)]
@@ -50,6 +53,7 @@ pub struct SynthLang {
     pub vc_weight: i32,
     pub cv_weight: i32,
     pub cvc_weight: i32,
+    next_part_weights: NextPartWeights,
     rng: Pcg64,
 }
 
@@ -103,6 +107,55 @@ impl SynthLang {
             }
         }
 
+        // Generate a list of syllable parts and weights to use when choosing the next syllable
+        // part after that.
+        //
+        // TODO: We want to ensure that all weights are not zero. This probably can't happen right
+        // now but could if we add more overrides
+
+        let mut next_part_weights = HashMap::new();
+        let mut shuffled: Vec<String> = vowels
+            .iter()
+            .chain(consonants.iter())
+            .chain(vec!["\0".to_string()].iter())
+            .cloned()
+            .collect();
+        shuffled.shuffle(&mut rng);
+
+        for l in shuffled {
+            let next_part_weights_vowels = vowels
+                .iter()
+                .cloned()
+                .enumerate()
+                .map(|(i, v)| {
+                    let weight = Self::next_part_weight(i, vowels.len());
+
+                    (
+                        v.clone(),
+                        Self::next_part_weight_overrides(&mut rng, weight, &l, &v),
+                    )
+                })
+                .collect();
+            let next_part_weights_consonants = consonants
+                .iter()
+                .cloned()
+                .enumerate()
+                .map(|(i, v)| {
+                    let weight = Self::next_part_weight(i, vowels.len());
+
+                    (
+                        v.clone(),
+                        Self::next_part_weight_overrides(&mut rng, weight, &l, &v),
+                    )
+                })
+                .collect();
+
+            next_part_weights.insert(
+                l.clone(),
+                (next_part_weights_vowels, next_part_weights_consonants),
+            );
+        }
+
         let weights = Self::random_weights(&mut rng);
 
         Self {
@@ -111,7 +164,41 @@ impl SynthLang {
             cv_weight: weights.0,
             vc_weight: weights.1,
             cvc_weight: weights.2,
+            next_part_weights,
             rng,
+        }
+    }
+
+    fn next_part_weight(i: usize, len: usize) -> i32 {
+        // TODO should we do something fancier here?
+
+        let pct = i as f32 / len as f32;
+
+        if pct > 0.5 {
+            5
+        } else if pct > 0.8 {
+            0
+        } else {
+            10
+        }
+    }
+
+    fn next_part_weight_overrides(
+        rng: &mut Pcg64,
+        weight: i32,
+        part: &str,
+        next_part: &str,
+    ) -> i32 {
+        match (part, next_part) {
+            ("\0", "ng") => {
+                if rng.gen_range(0, 4) == 0 {
+                    weight
+                } else {
+                    0
+                }
+            }
+            ("q", n) if n != "u" => 0,
+            (_, _) => weight,
         }
     }
 
@@ -365,40 +452,63 @@ impl SynthLang {
             SyllableType::CV => {
                 parts.push(SyllablePart {
                     part_type: SyllablePartType::Consonant,
-                    value: self.consonants.choose(&mut self.rng).unwrap().to_string(),
+                    value: self.next_part(&"\0".to_string(), SyllablePartType::Consonant),
                 });
                 parts.push(SyllablePart {
                     part_type: SyllablePartType::Vowel,
-                    value: self.vowels.choose(&mut self.rng).unwrap().to_string(),
+                    value: self.next_part(&parts[0].value, SyllablePartType::Vowel),
                 });
             }
             SyllableType::VC => {
                 parts.push(SyllablePart {
                     part_type: SyllablePartType::Vowel,
-                    value: self.vowels.choose(&mut self.rng).unwrap().to_string(),
+                    value: self.next_part(&"\0".to_string(), SyllablePartType::Vowel),
                 });
                 parts.push(SyllablePart {
                     part_type: SyllablePartType::Consonant,
-                    value: self.consonants.choose(&mut self.rng).unwrap().to_string(),
+                    value: self.next_part(&parts[0].value, SyllablePartType::Consonant),
                 });
             }
             SyllableType::CVC => {
                 parts.push(SyllablePart {
                     part_type: SyllablePartType::Consonant,
-                    value: self.consonants.choose(&mut self.rng).unwrap().to_string(),
+                    value: self.next_part(&"\0".to_string(), SyllablePartType::Consonant),
                 });
                 parts.push(SyllablePart {
                     part_type: SyllablePartType::Vowel,
-                    value: self.vowels.choose(&mut self.rng).unwrap().to_string(),
+                    value: self.next_part(&parts[0].value, SyllablePartType::Vowel),
                 });
                 parts.push(SyllablePart {
                     part_type: SyllablePartType::Consonant,
-                    value: self.consonants.choose(&mut self.rng).unwrap().to_string(),
+                    value: self.next_part(&parts[1].value, SyllablePartType::Consonant),
                 });
             }
         }
 
         Syllable { parts }
+    }
+
+    fn next_part(&mut self, part: &str, next_part_type: SyllablePartType) -> String {
+        match next_part_type {
+            SyllablePartType::Vowel => self
+                .next_part_weights
+                .get(part)
+                .unwrap()
+                .0
+                .choose_weighted(&mut self.rng, |c| c.1)
+                .unwrap()
+                .0
+                .clone(),
+            SyllablePartType::Consonant => self
+                .next_part_weights
+                .get(part)
+                .unwrap()
+                .1
+                .choose_weighted(&mut self.rng, |c| c.1)
+                .unwrap()
+                .0
+                .clone(),
+        }
     }
 
     pub fn word(&mut self) -> Word {
